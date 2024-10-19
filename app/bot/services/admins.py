@@ -1,6 +1,6 @@
 from bot.config import BotConfig
 
-def users_check_admin_str(id: int, cfg: BotConfig) -> str:
+def user_check_admin_str(id: int, cfg: BotConfig) -> str:
     """Check if user corresponds to an admin and returns
     a string.
 
@@ -22,7 +22,7 @@ def users_check_admin_str(id: int, cfg: BotConfig) -> str:
     else:
         return "You are not an admin."
 
-def users_check_admin(id: int, cfg: BotConfig) -> tuple[bool, str]:
+def user_check_admin(id: int, cfg: BotConfig) -> tuple[bool, str]:
     """Check if user corresponds to an admin and returns
     a bool.
 
@@ -35,8 +35,9 @@ def users_check_admin(id: int, cfg: BotConfig) -> tuple[bool, str]:
     """
     
     if id == cfg.rootadmin_id:
-        return (True, users_check_admin_str(id, cfg))
+        return (True, user_check_admin_str(id, cfg))
     elif id in cfg.admin_ids:
-        return (True, users_check_admin_str(id, cfg))
+        return (True, user_check_admin_str(id, cfg))
     else:
-        return (False, users_check_admin_str(id, cfg))
+        return (False, user_check_admin_str(id, cfg))
+    

@@ -1,10 +1,12 @@
+import json
 import sys
 import logging
 import asyncio
 
 from bot.bot import bot, bot_cfg
+from bot.config import ROOTADMIN_INFO
 
-import bot.services.db as db
+from bot.services.db import Database
 
 
 # Configure logging
@@ -16,16 +18,23 @@ async def main() -> None:
     """Main function which will execute out
     event loop and start polling.
     """
-    
-    # Connect to the database and create tables
-    db_conn = db.connect_db()
-    db_cursor = db_conn.cursor()
-    db.create_tables(db_cursor)
-    db.insert_rootadmin(db_cursor)
-    
-    bot_dp = bot_cfg()
-    await bot_dp.start_polling(bot)
-    db.close_db(db_conn)
+    try:
+        # Initialize the database and create tables
+        db = Database()
+        db.create_tables()
+        # Insert rootadmin in the database
+        rootadmin_info = json.loads(ROOTADMIN_INFO)
+        db.insert_player(rootadmin_info)
+        
+        bot_dp = bot_cfg()
+        await bot_dp.start_polling(bot)
+        
+    except KeyboardInterrupt:
+        logger.info("Program interrupted.")
+        
+    finally:
+    # Close database
+        db.close_db()
     
 if __name__ == "__main__":
     asyncio.run(main())

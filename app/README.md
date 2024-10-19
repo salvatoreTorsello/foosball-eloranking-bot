@@ -71,11 +71,11 @@ $ set -o allexport && source ./.env && set +o allexport
 ### Administrators menu
 - [ ] Add options to select between 
   - [ ] [Manage players](#manage-players)
-  - [ ] [Pending games](#pending-games)
+  - [x] [Pending games](#pending-games)
   - [ ] Back
 
 #### Manage players
-- [ ] [Add new player](#add-new-player) 
+- [] [Add new player](#add-new-player) 
 - [ ] [Edit player](#edit-player)
 - [ ] Back
 
@@ -83,20 +83,20 @@ $ set -o allexport && source ./.env && set +o allexport
 - [x] Ask first name, last name, nickname and privileges
 - [x] Show summary (yes or cancel options)
 - [ ] Add user admin check
-- [ ] Push players to db table of players
+- [x] Push players to db table of players
 
 #### Pending games
-- [ ] Add user admin check
-- [ ] Get game from db table of pending games one-by-one
-- [ ] Build a message with inline keyboard asking for confirmation
-- [ ] Ask before confirm (place a cancel button)
+- [x] Add user admin check
+- [x] Get game from db table of pending games one-by-one
+- [x] Build a message with inline keyboard asking for confirmation
+- [x] Ask before confirm (place a cancel button)
 
 ### Add game
-- [ ] Setup aiogram fsm
-- [ ] Create handlers for fsm states
-- [ ] Add user id check to prevent unregistered user to add games
-- [ ] Ask for confirmation after all game data insertion
-- [ ] Push game to db table of pending games
+- [x] Setup aiogram fsm
+- [x] Create handlers for fsm states
+- [x] Add user id check to prevent unregistered user to add games
+- [x] Ask for confirmation after all game data insertion
+- [x] Push game to db table of pending games
 - [ ] Notify admins to approve a game
 
 ### Database
@@ -124,10 +124,19 @@ $ set -o allexport && source ./.env && set +o allexport
     - second team (json: player1, player2 (foreign id key of players table))
     - score (json: first team, second team (only numbers between 0 and 10))
     - date
+  - [x] archived games
+    - id: primery key
+    - first team (json: player1, player2 (foreign id key of players table))
+    - second team (json: player1, player2 (foreign id key of players table))
+    - score (json: first team, second team (only numbers between 0 and 10))
+    - date
   - [x] Create function to insert the root admin as player getting the info from the config module
   - [x] Create function to check if nickname exists in players table
   - [x] Create function to get the list of all nicknames of the registered players
-  - [ ] Create function to insert a player in database
-  - [ ] Create function to insert game in pending games table
-  - [ ] Create function to fetch pending games from pending games table
-  - [ ] Create function to insert game in games tables
+  - [x] Create function to insert a player in database
+  - [x] Create function to insert game in pending games table
+  - [x] Create function to fetch pending games from pending games table
+  - [x] Create function to insert game in games tables
+  - [x] Create function to get the list of all telegram uid, useful to quickly check if the user which is using the bot is registered.
+  - [x] Function to move game from pending games to games table, adding needed information
+  - [x] Function to move game from pending games to archived games table 

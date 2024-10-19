@@ -5,11 +5,11 @@ FROM python:3.10-slim
 WORKDIR /app
 
 # Copy the current directory contents into the container at /app
-COPY . /app
+COPY app /app
 
 # Install the required packages
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Specify the command to run the application
-CMD ["python", "main.py"]
+CMD ["python", "/app/main.py"]
 

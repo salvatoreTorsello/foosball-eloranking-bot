@@ -4,6 +4,18 @@ dflt_opts = ["Start", "Help"]
 
 yesno_rk_opts = ["Yes", "No"]
 
+yesno_ik_opts = [
+    ("Yes", "yes"),
+    ("No", "no"),
+]
+
+yesnoskip_ik_opts = [
+    ("Yes", "yes"),
+    ("No", "no"),
+    ("Skip", "skip"),
+    ("Finish", "finish")
+]
+
 cancel_ik_opts  = [
     ("Cancel", "cancel")
 ]
@@ -29,13 +41,6 @@ mngPlayersMenu_opts = [
     ("🔙 Back", "menu_admin") 
 ]
 
-class AddPlayer(StatesGroup):
-    firstname = State()
-    lastname = State()
-    nickname = State()
-    admin = State()
-    confirm = State()
-
 # Edit players menu options
 __editPlayerMenu_opts = [
     ("Edit first name", "edit_firstname"),
@@ -59,3 +64,25 @@ myProfileMenu_opts = [
 
 # Edit My Profile menu options
 editMyProfileMenu_opts = __editPlayerMenu_opts
+
+# Finite State Machine classes
+
+class AddPlayer(StatesGroup):
+    firstname = State()
+    lastname = State()
+    nickname = State()
+    admin = State()
+    confirm = State()
+    
+class AddGame(StatesGroup):
+    player1 = State()
+    player2 = State()
+    player3 = State()
+    player4 = State()
+    score1 = State()
+    score2 = State()
+    confirm = State()
+    
+
+class GameStates(StatesGroup):
+    show_pgame= State()
