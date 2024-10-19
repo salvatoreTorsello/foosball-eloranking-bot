@@ -13,6 +13,7 @@ This directory containes sourse code writted in python of the Foosball Elo Ranki
     - [Start](#start)
     - [Administrators menu](#administrators-menu)
       - [Manage players](#manage-players)
+      - [My Profile menu](#my-profile-menu)
       - [Add new player](#add-new-player)
       - [Pending games](#pending-games)
     - [Add game](#add-game)
@@ -75,9 +76,15 @@ $ set -o allexport && source ./.env && set +o allexport
   - [ ] Back
 
 #### Manage players
-- [] [Add new player](#add-new-player) 
+- [ ] [Add new player](#add-new-player) 
 - [ ] [Edit player](#edit-player)
 - [ ] Back
+
+#### My Profile menu
+- [ ] [Stats](#stats) 
+- [x] [Edit](#edit-profile)
+- [ ] Back
+
 
 #### Add new player
 - [x] Ask first name, last name, nickname and privileges
@@ -140,3 +147,5 @@ $ set -o allexport && source ./.env && set +o allexport
   - [x] Create function to get the list of all telegram uid, useful to quickly check if the user which is using the bot is registered.
   - [x] Function to move game from pending games to games table, adding needed information
   - [x] Function to move game from pending games to archived games table 
+  - [x] Function to get player info from tg uid
+  - [x] Function to edit player info given tg uid and player info dict

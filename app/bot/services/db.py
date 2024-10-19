@@ -272,16 +272,53 @@ class Database:
         """Retrieve all pending games from the database and return them as a list of dictionaries."""
         
         cursor = Database()._instance.cursor
-        cursor.execute("SELECT * FROM pending_games")  # Fetch all data from pending_games
-        rows = cursor.fetchall()  # Get all rows
+        cursor.execute("SELECT * FROM pending_games")
+        rows = cursor.fetchall()
 
-        # Get column names from the cursor description
         column_names = [description[0] for description in cursor.description]
-        
-        # Create a list of dictionaries
         pending_games = []
         for row in rows:
             game_data = {column_names[i]: row[i] for i in range(len(column_names))}
             pending_games.append(game_data)
 
         return pending_games
+    
+    
+    @staticmethod
+    def get_player_info_by_tg_uid(tg_uid: int) -> dict:
+        """Retrieve player information from the database based on tg_uid and return it as a dictionary."""
+        
+        cursor = Database()._instance.cursor
+        cursor.execute("SELECT * FROM players WHERE tg_uid = ?", (tg_uid,))
+        player = cursor.fetchone()
+        
+        if player is None:
+            raise ValueError("Player not found.")
+
+        column_names = [description[0] for description in cursor.description]
+        player_info = {column_names[i]: player[i] for i in range(len(column_names))}
+
+        return player_info
+    
+    
+    @staticmethod
+    def edit_player_info(tg_uid: int, update_data: dict) -> None:
+        """Edit player information in the database based on tg_uid and provided data dictionary.
+        
+        Returns True if the player is found and the operation is successful, otherwise returns False.
+        """
+        
+        cursor = Database()._instance.cursor
+        cursor.execute("SELECT COUNT(*) FROM players WHERE tg_uid = ?", (tg_uid,))
+        if cursor.fetchone()[0] == 0:
+            return False
+
+        set_clause = ", ".join(f"{key} = ?" for key in update_data.keys())
+        values = list(update_data.values())
+        
+        try:
+            cursor.execute(f"UPDATE players SET {set_clause} WHERE tg_uid = ?", (*values, tg_uid))
+            Database()._instance.connection.commit()
+            return True
+        except Exception as e:
+            return False

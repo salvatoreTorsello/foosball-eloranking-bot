@@ -23,7 +23,7 @@ cancel_ik_opts  = [
 # Main menu options
 mainMenu_opts = [
     ("Admin", "menu_admin"),
-    ("My profile", "menu_profile"),
+    ("My profile", "menu_myprofile"),
     ("Add game", "menu_addgame")
 ]
 
@@ -57,9 +57,17 @@ adminEditPlayer_opts = __editPlayerMenu_opts + [
 
 # My Profile menu options
 myProfileMenu_opts = [
-    ("Show statistics", "show_stats"),
-    ("Edit", "myprofile_edit_player"),
+    ("Show statistics", "myprofile_stats"),
+    ("Edit", "myprofile_edit"),
     ("🔙 Back", "menu_main"),
+]
+
+# My profile edit
+myProfileEdit_opts = [
+    ("Edit first name", "myprofile_edit_first_name"),
+    ("Edit last name", "myprofile_edit_last_name"),
+    ("Edit nickname", "myprofile_edit_nickname"),
+    ("🔙 Back", "menu_myprofile")
 ]
 
 # Edit My Profile menu options
@@ -85,4 +93,9 @@ class AddGame(StatesGroup):
     
 
 class GameStates(StatesGroup):
-    show_pgame= State()
+    show_pgame = State()
+    
+class EditProfileStates(StatesGroup):
+    field = State()
+    value = State()
+    confirm = State()
