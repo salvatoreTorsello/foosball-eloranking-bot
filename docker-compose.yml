@@ -5,8 +5,9 @@ services:
     build: .
     container_name: foosball_bot
     environment:
-      - DATABASE_PATH=${DATABASE_PATH}
-      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+      - API_TOKEN=${API_TOKEN}
+      - DB_PATH=${DB_PATH}
+      - ROOTADMIN_INFO=${ROOTADMIN_INFO}
     volumes:
-      - ./foosball.db:/app/foosball.db  # Persist SQLite database to the host machine
+      - ./app/foosball.db:/app/foosball.db
     restart: unless-stopped
