@@ -17,12 +17,16 @@ from bot.services.db import Database
 admin_router = Router()
 
 addplayer_title = "👤 Player Registration\n\n"
-addplayer_success = "\n✅ Registration completed successfully!\n\n"
-addplayer_canceled = "\n❌ Registration canceled!\n\n"
+addplayer_success = "\n✅ Registration completed successfully!"
+addplayer_canceled = "\n❌ Registration canceled!"
 
 pending_game_title = "❓ Pending games confirmation\n\n"
-peding_game_conf = "\n✅ Game confirmed successfully!\n\n"
-peding_game_notconf = "\n⚠️ Game refused successfully!\n\n"
+peding_game_conf = "\n✅ Game confirmed successfully!"
+peding_game_notconf = "\n⚠️ Game refused successfully!"
+
+unban_title = f"{html.quote('Unban user')}\n\n"
+unban_conf = "✅ User access has been restored!"
+unban_notconf = "❌ Unban canceled!\n\n"
 
 @admin_router.callback_query(F.data == 'menu_admin')
 async def cmd_admin(cb_query: CallbackQuery, cfg: BotConfig) -> None:
@@ -299,3 +303,51 @@ async def cmd_pending_games_yes(cb_query: CallbackQuery, state: FSMContext) -> N
     else:
         await cb_query.message.answer("No more pending games.")
         await state.clear()
+        
+        
+        
+
+
+##### Unban user #####
+
+
+@admin_router.callback_query(F.data == 'unban_user')
+async def cmd_unban_user(cb_query: CallbackQuery, state: FSMContext):
+    
+    db = Database()
+    await state.set_state(cmd.UnbanUserState.id)
+    banned_users = db.get_banned_users()
+    opts = [(f"{uid}", f"unban_uid_{uid}") for uid in banned_users]
+    keyboard = kbrd.create_inline_2c(opts)
+    text = unban_title
+    text += "➜ Select the telegram id to be restored"
+    await cb_query.message.edit_text(text, reply_markup=keyboard)
+
+
+@admin_router.callback_query(F.data.startswith('unban_uid_'))
+async def cmd_unban_uid(cb_query: CallbackQuery, state: FSMContext):
+
+    uid = cb_query.data[10:]
+    await state.update_data(uid=uid)
+    await state.set_state(cmd.UnbanUserState.confirm)
+    text = unban_title
+    text += f"➜  Do you want to unban {uid}?"
+    keyboard = kbrd.create_reply(cmd.yesno_rk_opts)
+    await cb_query.message.answer(text, reply_markup=keyboard)
+    
+
+@admin_router.message(cmd.UnbanUserState.confirm)
+async def cmd_unban_uid_confirm(msg: Message, state: FSMContext) -> None:
+
+    await state.update_data(confirm=msg.text)
+    data = await state.get_data()
+    await state.clear()
+    text = unban_title
+    db = Database()
+    if str(data.get('confirm', 'N/A')).casefold() == 'yes':
+        db.delete_banned_user(data['uid'])
+        text += unban_conf
+        await msg.answer(text, reply_markup=None)
+    else:
+        text += unban_notconf
+        await msg.answer(text, reply_markup=None)

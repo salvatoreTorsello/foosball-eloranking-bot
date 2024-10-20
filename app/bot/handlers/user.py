@@ -117,8 +117,8 @@ async def cmd_myprofile_edit_confirm(msg: Message, state: FSMContext) -> None:
     text = myprofile_title
     if str(data.get('confirm', 'N/A')).casefold() == 'yes':
         player_info[data.get('field', 'N/A')[4:]] = data.get('value', 'N/A')
-        if not db.edit_player_info(msg.from_user.id, player_info):
-            text += "⚠️ Unexpected error while updating player info. Please ontact administrator."
+        if not db.edit_player_info_by_tg_uid(msg.from_user.id, player_info):
+            text += "⚠️ Unexpected error while updating player info. Please contact administrator."
             await msg.answer(text, reply_markup=None)
         resp = myprofile_edit_conf
     else:

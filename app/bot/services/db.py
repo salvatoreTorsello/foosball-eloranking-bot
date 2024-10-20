@@ -85,6 +85,15 @@ class Database:
                                         (json_extract(scores, '$.team2') BETWEEN 0 AND 10)),
                 date DATETIME DEFAULT CURRENT_TIMESTAMP
             );
+            
+            -- Create the banned_users table
+            CREATE TABLE IF NOT EXISTS banned_users (
+                id INTEGER PRIMARY KEY,
+                tg_uid INTEGER NOT NULL,
+                reason TEXT,
+                date DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(tg_uid)  -- Ensure each user is unique
+            );
         """)
         Database()._instance.connection.commit()
                 
@@ -302,7 +311,24 @@ class Database:
     
     
     @staticmethod
-    def edit_player_info(tg_uid: int, update_data: dict) -> None:
+    def get_player_info_by_nickname(nickname: str) -> dict:
+        """Retrieve player information from the database based on nickname and return it as a dictionary."""
+        
+        cursor = Database()._instance.cursor
+        cursor.execute("SELECT * FROM players WHERE nickname = ?", (nickname,))
+        player = cursor.fetchone()
+        
+        if player is None:
+            raise ValueError("Player not found.")
+
+        column_names = [description[0] for description in cursor.description]
+        player_info = {column_names[i]: player[i] for i in range(len(column_names))}
+
+        return player_info
+    
+    
+    @staticmethod
+    def edit_player_info_by_tg_uid(tg_uid: int, update_data: dict) -> bool:
         """Edit player information in the database based on tg_uid and provided data dictionary.
         
         Returns True if the player is found and the operation is successful, otherwise returns False.
@@ -322,3 +348,133 @@ class Database:
             return True
         except Exception as e:
             return False
+    
+    @staticmethod
+    def edit_player_info_by_nickname(nickname: str, update_data: dict) -> bool:
+        """Edit player information in the database based on nickname and provided data dictionary.
+        
+        Returns True if the player is found and the operation is successful, otherwise returns False.
+        """
+        
+        cursor = Database()._instance.cursor
+        
+        # Check if the player exists based on nickname
+        cursor.execute("SELECT COUNT(*) FROM players WHERE nickname = ?", (nickname,))
+        if cursor.fetchone()[0] == 0:
+            return False  # Player not found
+
+        # Prepare the SQL update statement
+        set_clause = ", ".join(f"{key} = ?" for key in update_data.keys())
+        values = list(update_data.values())
+        
+        try:
+            # Execute the update query with the nickname at the end
+            cursor.execute(f"UPDATE players SET {set_clause} WHERE nickname = ?", (*values, nickname))
+            Database()._instance.connection.commit()  # Commit the transaction
+            return True  # Update successful
+        except Exception as e:
+            print(f"An error occurred: {e}")  # Optional: log the error for debugging
+            return False  # Operation failed
+        
+        
+    @staticmethod
+    def player_is_registered(tg_uid: int) -> bool:
+        """Check if a player exists in the database based on tg_uid.
+        
+        Returns True if the player is found, otherwise returns False.
+        """
+        
+        cursor = Database()._instance.cursor
+        cursor.execute("SELECT COUNT(*) FROM players WHERE tg_uid = ?", (tg_uid,))
+        return cursor.fetchone()[0] > 0
+    
+    
+    @staticmethod
+    def player_is_banned(tg_uid: int) -> bool:
+        """Check if a player has been ever banned based on tg_uid.
+        
+        Returns True if the player is banned, otherwise returns False.
+        """
+        
+        cursor = Database()._instance.cursor
+        cursor.execute("SELECT COUNT(*) FROM banned_users WHERE tg_uid = ?", (tg_uid,))
+        return cursor.fetchone()[0] > 0
+    
+    
+    @staticmethod
+    def ban_user(tg_uid: int, reason: str) -> None:
+        """Ban a user by inserting their tg_uid into the banned_users table."""
+        
+        cursor = Database()._instance.cursor
+        cursor.execute("""
+            INSERT INTO banned_users (tg_uid, reason) 
+            VALUES (?, ?)
+        """, (tg_uid, reason))
+        
+        Database()._instance.connection.commit()
+        
+        
+    @staticmethod
+    def delete_banned_user(tg_uid: int) -> None:
+        """Delete a user from the banned_users table based on tg_uid."""
+        
+        cursor = Database()._instance.cursor
+        cursor.execute("DELETE FROM banned_users WHERE tg_uid = ?", (tg_uid,))
+        Database()._instance.connection.commit()
+        
+        
+    @staticmethod
+    def get_banned_users() -> list:
+        """Retrieve a list of all tg_uid values from the banned_users table."""
+        
+        cursor = Database()._instance.cursor
+        cursor.execute("SELECT tg_uid FROM banned_users")
+        banned_users = cursor.fetchall() 
+        return [f"{row[0]}" for row in banned_users]
+    
+    
+    @staticmethod
+    def get_similar_players(search_string: str) -> list:
+        """Retrieve a list of players whose first name, last name, or nickname is similar to the input string.
+        
+        Args:
+            search_string (str): The string to search for in player names and nicknames.
+            
+        Returns:
+            list: A list of dictionaries containing player information.
+        """
+        
+        cursor = Database()._instance.cursor
+        query = """
+            SELECT * FROM players
+            WHERE LOWER(first_name) LIKE LOWER(?) OR
+                LOWER(last_name) LIKE LOWER(?) OR
+                LOWER(nickname) LIKE LOWER(?)
+        """
+        
+        search_pattern = f"%{search_string}%"
+        cursor.execute(query, (search_pattern, search_pattern, search_pattern))
+        players = cursor.fetchall()
+        column_names = [description[0] for description in cursor.description]
+        
+        similar_players = []
+        for row in players:
+            player_info = {column_names[i]: row[i] for i in range(len(column_names))}
+            similar_players.append(player_info)
+
+        return similar_players
+
+
+    @staticmethod
+    def get_admins_tg_uid() -> list:
+        """Retrieve a list of tg_uid values of players with admin rights from the database.
+        
+        Returns:
+            list: A list of tg_uid values for players with admin rights.
+        """
+        
+        cursor = Database()._instance.cursor
+        cursor.execute("SELECT tg_uid FROM players WHERE admin = 1")
+        admin_tg_uids = cursor.fetchall()
+        return [row[0] for row in admin_tg_uids]
+

@@ -10,6 +10,7 @@ This directory containes sourse code writted in python of the Foosball Elo Ranki
   - [Usage](#usage)
   - [Bugs](#bugs)
   - [TO Do list](#to-do-list)
+    - [Welcome](#welcome)
     - [Start](#start)
     - [Administrators menu](#administrators-menu)
       - [Manage players](#manage-players)
@@ -57,13 +58,18 @@ $ set -o allexport && source ./.env && set +o allexport
 ```
 
 ## Bugs
-- [ ] Unable to restore keybaord after finishing an operation
+- [ ] Unable to restore keybaord after if an operation is interrupted.
 
 ## TO Do list
 
+### Welcome
+- [x] Ask for a password to get access to bot (3 attempts)
+- [x] Ban tg id after three attempt (create bun and unban function with banned_users table) 
+- [x] Bot start procedure to connect user to database player table.
+  - [x] Bot asks user to write first and last name, or nickname. User insert it and then bot presents a list of all metched nicknames using data writed by user (considering only players in players table that doesn't have tg_uid configured).
+  - [x] After user selects the proper nickname, database is updated.
+
 ### Start
-- [ ] Welcome: "First time here?" question to connect user to database player table. 
-  - [ ] Bot asks user to give their nickname. The bot will propose the list of gameed players, then the user will select the player. Then bot makes an inline message with buttons to ask for confirmation.
 - [ ] Main Menu
   - [ ] [Admins menu](#administrators-menu)
   - [ ] [My profile](#my-profile-menu)
@@ -77,7 +83,7 @@ $ set -o allexport && source ./.env && set +o allexport
 
 #### Manage players
 - [ ] [Add new player](#add-new-player) 
-- [ ] [Edit player](#edit-player)
+- [x] [Edit player](#edit-player)
 - [ ] Back
 
 #### My Profile menu
@@ -149,3 +155,6 @@ $ set -o allexport && source ./.env && set +o allexport
   - [x] Function to move game from pending games to archived games table 
   - [x] Function to get player info from tg uid
   - [x] Function to edit player info given tg uid and player info dict
+  - [x] Create banned users table
+  - [x] Get admins ids
+  - [x] Function to get similar players with respect to data inserted by the user

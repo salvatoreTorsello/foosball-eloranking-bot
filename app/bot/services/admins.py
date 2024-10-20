@@ -1,4 +1,5 @@
 from bot.config import BotConfig
+from bot.services.db import Database
 
 def user_check_admin_str(id: int, cfg: BotConfig) -> str:
     """Check if user corresponds to an admin and returns
@@ -15,9 +16,11 @@ def user_check_admin_str(id: int, cfg: BotConfig) -> str:
         the root admin.`.
     """
     
+    db = Database()
+    admin_ids = db.get_admins_tg_uid()
     if id == cfg.rootadmin_id:
         return "You are the root admin."
-    elif id in cfg.admin_ids:
+    elif id in admin_ids:
         return "You are an admin."
     else:
         return "You are not an admin."
@@ -34,9 +37,11 @@ def user_check_admin(id: int, cfg: BotConfig) -> tuple[bool, str]:
         bool: `True` if user is a administrator, `False` otherwise.
     """
     
+    db = Database()
+    admin_ids = db.get_admins_tg_uid()
     if id == cfg.rootadmin_id:
         return (True, user_check_admin_str(id, cfg))
-    elif id in cfg.admin_ids:
+    elif id in admin_ids:
         return (True, user_check_admin_str(id, cfg))
     else:
         return (False, user_check_admin_str(id, cfg))

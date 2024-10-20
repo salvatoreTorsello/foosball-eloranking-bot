@@ -31,6 +31,7 @@ mainMenu_opts = [
 adminMenu_opts = [
     ("Manage players", "mng_players"),
     ("Pending games", "pending_games"),
+    ("Unban user", "unban_user"),
     ("🔙 Back", "menu_main") 
 ]
 
@@ -75,6 +76,10 @@ editMyProfileMenu_opts = __editPlayerMenu_opts
 
 # Finite State Machine classes
 
+class Welcome(StatesGroup):
+    password = State()
+    search = State()
+
 class AddPlayer(StatesGroup):
     firstname = State()
     lastname = State()
@@ -98,4 +103,8 @@ class GameStates(StatesGroup):
 class EditProfileStates(StatesGroup):
     field = State()
     value = State()
+    confirm = State()
+    
+class UnbanUserState(StatesGroup):
+    id = State()
     confirm = State()
