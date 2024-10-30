@@ -1,3 +1,5 @@
+from typing import List, Dict
+
 k = 32
 
 
@@ -60,3 +62,11 @@ def compute_ratings(elo_data: dict) -> dict:
         }
         
         return updated_elos
+
+
+def calculate_gain_percentage(elo_history: List[int]) -> float:
+    """Calculate gain/loss percentage based on Elo history of the last 10 games."""
+    if len(elo_history) < 2:
+        return 0.0  # Not enough data
+    start_elo, end_elo = elo_history[-10], elo_history[-1]
+    return ((end_elo - start_elo) / start_elo) * 100 if start_elo else 0.0

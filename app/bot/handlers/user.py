@@ -2,7 +2,7 @@ from typing import Any, Dict
 from aiogram import F, Router, html
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, FSInputFile
 
 from bot.bot import BotConfig
 from bot.services.admins import user_check_admin
@@ -10,7 +10,9 @@ from bot.services import keyboard as kbrd
 from bot.services import cmd
 from bot.services import utils
 from bot.services.db import Database
-from logger import logger  # Import logger
+from bot.services import elo
+from bot.services import ranking
+from logger import logger
 
 user_router = Router()
 addgame_title = f"{html.quote('Game Registration')}\n\n"
@@ -397,3 +399,28 @@ async def cmd_addgame_notconf(cb_query: CallbackQuery, state: FSMContext) -> Non
     text += addgame_canceled
     await cb_query.message.edit_text(text, reply_markup=None)
     logger.info(f"User {cb_query.from_user.id} canceled the game addition.")
+
+
+@user_router.callback_query(F.data == 'ranking')
+async def show_ranking_callback(cb_query: CallbackQuery):
+    logger.info(f"User {cb_query.from_user.id} requested the ranking.")
+
+    db = Database()
+    # Fetch player data
+    success, players_data = db.get_all_players()
+
+    if not success:
+        logger.error(f"Failed to load ranking data for user {cb_query.from_user.id}: {players_data}")
+        await cb_query.message.answer("Error loading ranking data.")
+        return
+
+    logger.info(f"Successfully retrieved ranking data for user {cb_query.from_user.id}")
+
+    # Generate HTML file and send it to the user
+    try:
+        html_file_path = ranking.generate_ranking_html(players_data)
+        await cb_query.message.answer_document(FSInputFile(html_file_path, "ranking.html"))
+        logger.info(f"Ranking file {html_file_path} sent to user {cb_query.from_user.id}.")
+    except Exception as e:
+        logger.error(f"Failed to generate or send ranking HTML for user {cb_query.from_user.id}: {e}")
+        await cb_query.message.answer("Error generating ranking file.")

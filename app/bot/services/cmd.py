@@ -24,7 +24,8 @@ cancel_ik_opts  = [
 mainMenu_opts = [
     ("Admin", "menu_admin"),
     ("My profile", "menu_myprofile"),
-    ("Add game", "menu_addgame")
+    ("Add game", "menu_addgame"),
+    ("Ranking", "ranking")
 ]
 
 # Admin menu options

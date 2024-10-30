@@ -2,6 +2,7 @@ import os
 import sqlite3 as sql
 import json
 import re
+from typing import List, Dict, Tuple
 from datetime import datetime
 from bot.config import DB_PATH
 from bot.services import elo
@@ -611,5 +612,30 @@ class Database:
             return True, admin_tg_uids
         except sql.Error as e:
             return False, f"Database error: {e}"
+        
+    
+    @staticmethod
+    def get_all_players() -> Tuple[bool, List[Dict[str, any]]]:
+        """
+        Retrieve all players with their nickname, total games, and Elo score.
 
+        Returns:
+            Tuple[bool, List[Dict[str, any]]]: A tuple with a success flag and a list of player data.
+        """
+        cursor = Database()._instance.cursor
+        try:
+            # Query to retrieve all players ordered by Elo
+            cursor.execute("""
+                SELECT nickname, num_games, elo
+                FROM players
+                ORDER BY elo DESC
+            """)
+            players = cursor.fetchall()
 
+            # Prepare player data as a list of dictionaries
+            players_data = [{"nickname": nickname, "games": num_games, "elo": elo} for nickname, num_games, elo in players]
+
+            return True, players_data
+
+        except sql.Error as e:
+            return False, f"Database error: {e}"
