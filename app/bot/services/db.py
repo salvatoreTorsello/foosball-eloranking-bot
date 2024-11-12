@@ -1,4 +1,3 @@
-
 import os
 import sqlite3 as sql
 import json
@@ -11,12 +10,15 @@ from bot.services import elo
 
 class Database:
     _instance = None
-    _lock = threading.Lock()  # Lock to make database operations thread-safe
+    # Lock to make database operations thread-safe
+    _lock = threading.Lock()
+
 
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(Database, cls).__new__(cls)
         return cls._instance
+
 
     def initialize(self) -> tuple:
         """Initialize the database connection and return success/error tuple."""
@@ -37,8 +39,7 @@ class Database:
         Returns (success: bool, connection: sql.Connection or error_message: str)
         """
         try:
-            with Database._lock:
-                connection = sql.connect(DB_PATH)
+            connection = sql.connect(DB_PATH)
             return True, connection
         except sql.Error as e:
             return False, f"Failed to connect to the database: {e}"
@@ -80,6 +81,7 @@ class Database:
             with Database._lock:
                 cursor = Database()._instance.cursor
                 cursor.executescript("""
+                    -- Create the players table
                     CREATE TABLE IF NOT EXISTS players (
                         id INTEGER PRIMARY KEY,
                         first_name TEXT NOT NULL CHECK (first_name GLOB '[A-Za-z]*' AND LENGTH(first_name) <= 50),
@@ -92,7 +94,50 @@ class Database:
                         num_games INTEGER NOT NULL CHECK (num_games >= 0) DEFAULT 0
                     );
 
-                    -- Create other tables similarly
+                    -- Create the games table
+                    CREATE TABLE IF NOT EXISTS games (
+                        id INTEGER PRIMARY KEY,
+                        team1 JSON NOT NULL,
+                        team2 JSON NOT NULL,
+                        scores JSON NOT NULL CHECK (json_valid(scores) AND
+                                                (json_extract(scores, '$.team1') BETWEEN 0 AND 10) AND
+                                                (json_extract(scores, '$.team2') BETWEEN 0 AND 10)),
+                        date DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        confirm_admin_id INTEGER,
+                        confirm_date DATETIME,
+                        FOREIGN KEY (confirm_admin_id) REFERENCES players(id)
+                    );
+
+                    -- Create the pending_games table
+                    CREATE TABLE IF NOT EXISTS pending_games (
+                        id INTEGER PRIMARY KEY,
+                        team1 JSON NOT NULL,
+                        team2 JSON NOT NULL,
+                        scores JSON NOT NULL CHECK (json_valid(scores) AND
+                                                (json_extract(scores, '$.team1') BETWEEN 0 AND 10) AND
+                                                (json_extract(scores, '$.team2') BETWEEN 0 AND 10)),
+                        date DATETIME DEFAULT CURRENT_TIMESTAMP
+                    );
+
+                    -- Create the archived_games table
+                    CREATE TABLE IF NOT EXISTS archived_games (
+                        id INTEGER PRIMARY KEY,
+                        team1 JSON NOT NULL,
+                        team2 JSON NOT NULL,
+                        scores JSON NOT NULL CHECK (json_valid(scores) AND
+                                                (json_extract(scores, '$.team1') BETWEEN 0 AND 10) AND
+                                                (json_extract(scores, '$.team2') BETWEEN 0 AND 10)),
+                        date DATETIME DEFAULT CURRENT_TIMESTAMP
+                    );
+                    
+                    -- Create the banned_users table
+                    CREATE TABLE IF NOT EXISTS banned_users (
+                        id INTEGER PRIMARY KEY,
+                        tg_uid INTEGER NOT NULL,
+                        reason TEXT,
+                        date DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(tg_uid)  -- Ensure each user is unique
+                    );
                 """)
                 Database()._instance.connection.commit()
             return True, "Tables created successfully."
@@ -158,18 +203,88 @@ class Database:
     def confirm_pending_game(game_id: int, confirm_admin_id: int) -> tuple:
         """Confirm a pending game and update Elo ratings and game counts."""
         with Database._lock:
-            cursor = Database()._instance.cursor
-            try:
+            try:        
+                cursor = Database()._instance.cursor
                 # Fetch the pending game details
                 cursor.execute("SELECT * FROM pending_games WHERE id = ?", (game_id,))
                 game = cursor.fetchone()
+                
                 if game is None:
                     return False, "Pending game not found."
 
-                # Process game details, update Elo, and save confirmed game
+                # Extract teams and scores
+                team1 = json.loads(game[1])
+                team2 = json.loads(game[2])
+                scores = json.loads(game[3])
+
+                # Determine the winning and losing teams based on the score
+                if scores['team1'] > scores['team2']:
+                    winning_team = team1
+                    losing_team = team2
+                else:
+                    winning_team = team2
+                    losing_team = team1
+
+                # Retrieve Elo ratings of players
+                player_data = []
+                for team, team_players in zip(['winners', 'losers'], [winning_team, losing_team]):
+                    team_elos = []
+                    for nickname in team_players['players']:
+                        cursor.execute("SELECT elo, num_games FROM players WHERE nickname = ?", (nickname,))
+                        result = cursor.fetchone()
+                        if result is None:
+                            return False, f"Player with nickname '{nickname}' not found in the database."
+                        team_elos.append(result)
+                    player_data.append(team_elos)
+
+                # Separate player data for easier access
+                (elo_team1_player1, num_games_team1_player1), (elo_team1_player2, num_games_team1_player2) = player_data[0]
+                (elo_team2_player1, num_games_team2_player1), (elo_team2_player2, num_games_team2_player2) = player_data[1]
+
+                # Prepare the initial Elo dictionary and compute the updated one
+                initial_elos = {
+                    'winners': [elo_team1_player1, elo_team1_player2],
+                    'losers': [elo_team2_player1, elo_team2_player2]
+                }
+                updated_elos = elo.compute_ratings(initial_elos)
+
+                # Increment num_games for each player
+                num_games_team1_player1 += 1
+                num_games_team1_player2 += 1
+                num_games_team2_player1 += 1
+                num_games_team2_player2 += 1
+                
+                # Update the new Elo ratings and num_games in the database
+                cursor.execute("UPDATE players SET elo = ?, num_games = ? WHERE nickname = ?", 
+                            (updated_elos['winners'][0], num_games_team1_player1, winning_team['players'][0]))
+                cursor.execute("UPDATE players SET elo = ?, num_games = ? WHERE nickname = ?", 
+                            (updated_elos['winners'][1], num_games_team1_player2, winning_team['players'][1]))
+                cursor.execute("UPDATE players SET elo = ?, num_games = ? WHERE nickname = ?", 
+                            (updated_elos['losers'][0], num_games_team2_player1, losing_team['players'][0]))
+                cursor.execute("UPDATE players SET elo = ?, num_games = ? WHERE nickname = ?", 
+                            (updated_elos['losers'][1], num_games_team2_player2, losing_team['players'][1]))
+
+                # Insert confirmed game into games table
+                cursor.execute("""
+                    INSERT INTO games (team1, team2, scores, date, confirm_admin_id, confirm_date)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (
+                    json.dumps(team1),
+                    json.dumps(team2),
+                    json.dumps(scores),
+                    game[4],
+                    confirm_admin_id,
+                    datetime.now().isoformat()
+                ))
+
+                # Delete the game from the pending_games table
                 cursor.execute("DELETE FROM pending_games WHERE id = ?", (game_id,))
+                
+                # Commit the transaction
                 Database()._instance.connection.commit()
+
                 return True, "Game confirmed, Elo ratings, and game counts updated successfully."
+
             except sql.Error as e:
                 return False, f"Failed to confirm game: {e}"
 

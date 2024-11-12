@@ -17,19 +17,16 @@ async def main() -> None:
     event loop and start polling.
     """
     try:
-        db_exists = False
+        db_exists = True
         if os.path.exists(DB_PATH) and os.path.isfile(DB_PATH):
             logger.info("Database file already exists")
-            db_exists = True
         else:
             success, result = bak.download_latest()
+            logger.info(f"Downloading backup file: {result}")
             if not success:
-                logger.info(f"Downloading backup file: {result}")
                 logger.info(f"Creating empty file")
                 os.open(DB_PATH, os.O_CREAT)
-            else:
-                logger.info(f"Backup file retrived: {result}")
-                db_exists = True
+                db_exists = False
 
         # Initialize the database conncetion
         db = Database()
