@@ -2,6 +2,7 @@ import json
 import sys, os
 import logging
 import asyncio
+from threading import Thread, Event
 
 from logger import logger
 
@@ -19,8 +20,6 @@ async def main() -> None:
         db_exists = False
         if os.path.exists(DB_PATH) and os.path.isfile(DB_PATH):
             logger.info("Database file already exists")
-            success, result = bak.upload()
-            logger.info(f"Backing up db file: {result}") 
             db_exists = True
         else:
             success, result = bak.download_latest()
@@ -50,38 +49,30 @@ async def main() -> None:
             # Check if rootadmin already exists
             rootadmin_info = json.loads(ROOTADMIN_INFO)
             nickname = rootadmin_info['nickname']
-            success, player_info = db.get_player_info_by_nickname(nickname)
-            logger.info(f"Rootadmin {nickname} search: {player_info}")
-
+            
+            # Insert rootadmin into the database
+            success, result = db.insert_player(rootadmin_info)
             if not success:
-                if "not found" in player_info.lower():  
-                    # Insert rootadmin into the database only if they don't exist
-                    success, result = db.insert_player(rootadmin_info)
-                    if not success:
-                        logger.error(f"Failed to insert rootadmin: {result}")
-                        return
-                    logger.info("Rootadmin inserted successfully.")
-                    
-                    # Update the tg_uid of the newly inserted rootadmin
-                    success, player_info = db.get_player_info_by_nickname(nickname)
-                    if success:
-                        player_info['tg_uid'] = rootadmin_info.get('tg_uid', None)  # Use the provided tg_uid from ROOTADMIN_INFO
-                        success, result = db.edit_player_info_by_nickname(nickname, player_info)
-                        if not success:
-                            logger.error(f"Failed to update tg_uid for rootadmin: {result}")
-                            return
-                        logger.info("Rootadmin tg_uid updated successfully.")
-                    else:
-                        logger.error(f"Failed to retrieve rootadmin info by nickname '{nickname}' after insertion: {player_info}")
-                else:
-                    logger.error(f"Error retrieving rootadmin info: {player_info}")
+                logger.error(f"Failed to insert rootadmin: {result}")
+                return
+            logger.info("Rootadmin inserted successfully.")
+            
+            # Update the tg_uid of the newly inserted rootadmin
+            success, player_info = db.get_player_info_by_nickname(nickname)
+            if success:
+                player_info['tg_uid'] = rootadmin_info.get('tg_uid', None)  # Use the provided tg_uid from ROOTADMIN_INFO
+                success, result = db.edit_player_info_by_nickname(nickname, player_info)
+                if not success:
+                    logger.error(f"Failed to update tg_uid for rootadmin: {result}")
                     return
+                logger.info("Rootadmin tg_uid updated successfully.")
             else:
-                logger.info("Rootadmin already exists in the database, skipping insertion.")
-                
-            success, result = bak.upload()
-            logger.info(f"Uploading backup file: {result}") 
-            db_exists = True
+                logger.error(f"Failed to retrieve rootadmin info by nickname '{nickname}' after insertion: {player_info}")
+            
+        # Start the bakup thread
+        th_stop = Event()
+        t1 = Thread(target = bak.upload_th, args = (th_stop,))
+        t1.start()
         
         # Start bot polling
         bot_dp = bot_cfg()
@@ -91,6 +82,11 @@ async def main() -> None:
         logger.info("Program interrupted.")
         
     finally:
+        # Stop backup thread
+        logger.info("Send exit notification to backup thread")
+        th_stop.set()
+        t1.join()
+        
         # Close the database
         success, result = db.close_db()
         if not success:

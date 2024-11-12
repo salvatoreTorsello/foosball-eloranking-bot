@@ -3,6 +3,9 @@ import requests
 from datetime import datetime
 from xml.etree import ElementTree
 from bot.config import DB_PATH
+from threading import Event
+from time import sleep
+from bot.services.db import Database
 
 CLOUD_URI = os.getenv('CLOUD_URI') + '/remote.php/dav/files/' + os.getenv('CLOUD_USERNAME')
 CLOUD_USERNAME = os.getenv('CLOUD_USERNAME')
@@ -41,6 +44,23 @@ def upload() -> tuple:
             return False, f"Failed to upload file '{DB_PATH}'. Status code: {upload_response.status_code}"
     except Exception as e:
         return False, f"Failed to upload file '{DB_PATH}': {e}"
+
+
+def upload_th(stop: Event) -> None:
+    """Thread function which performs database file backup every
+    12 hours in thread safe approach.
+
+    Args:
+        stop (): lamba function to stop the thread
+    """
+
+    db = Database()
+    while not stop.is_set():
+        db.acquire_lock()
+        success, result = upload()
+        db.release_lock()
+        print(f"Backup upload thread: {result}")    
+        stop.wait(timeout=12*60*60)
 
 
 def download_latest() -> tuple:
