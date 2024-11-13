@@ -408,6 +408,7 @@ async def show_ranking_callback(cb_query: CallbackQuery):
     db = Database()
     # Fetch player data
     success, players_data = db.get_all_players()
+    filtered_data = [p for p in players_data if p['games'] >= 10]
 
     if not success:
         logger.error(f"Failed to load ranking data for user {cb_query.from_user.id}: {players_data}")
@@ -418,7 +419,7 @@ async def show_ranking_callback(cb_query: CallbackQuery):
 
     # Generate HTML file and send it to the user
     try:
-        html_file_path = ranking.generate_ranking_html(players_data)
+        html_file_path = ranking.generate_ranking_html(filtered_data)
         await cb_query.message.answer_document(FSInputFile(html_file_path, "ranking.html"))
         logger.info(f"Ranking file {html_file_path} sent to user {cb_query.from_user.id}.")
     except Exception as e:
