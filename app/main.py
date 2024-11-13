@@ -17,6 +17,10 @@ async def main() -> None:
     event loop and start polling.
     """
     try:
+        # Initialize the backup thread
+        th_stop = Event()
+        t1 = Thread(target = bak.upload_th, args = (th_stop,))
+        
         db_exists = True
         if os.path.exists(DB_PATH) and os.path.isfile(DB_PATH):
             logger.info("Database file already exists")
@@ -67,8 +71,6 @@ async def main() -> None:
                 logger.error(f"Failed to retrieve rootadmin info by nickname '{nickname}' after insertion: {player_info}")
             
         # Start the bakup thread
-        th_stop = Event()
-        t1 = Thread(target = bak.upload_th, args = (th_stop,))
         t1.start()
         
         # Start bot polling
@@ -79,10 +81,11 @@ async def main() -> None:
         logger.info("Program interrupted.")
         
     finally:
-        # Stop backup thread
-        logger.info("Send exit notification to backup thread")
-        th_stop.set()
-        t1.join()
+        # Stop backup thread if running
+        if t1.is_alive():
+            logger.info("Send exit notification to backup thread")
+            th_stop.set()
+            t1.join()
         
         # Close the database
         success, result = db.close_db()
