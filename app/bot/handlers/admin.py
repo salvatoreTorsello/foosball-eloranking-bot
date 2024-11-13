@@ -10,7 +10,7 @@ from bot.services import cmd
 from bot.services import keyboard as kbrd
 from bot.services import utils
 from bot.services.db import Database
-from logger import logger  # Import the logger
+from logger import logger
 
 admin_router = Router()
 
@@ -19,8 +19,8 @@ addplayer_success = "\n✅ Registration completed successfully!"
 addplayer_canceled = "\n❌ Registration canceled!"
 
 pending_game_title = "❓ Pending games confirmation\n\n"
-peding_game_conf = "\n✅ Game confirmed successfully!"
-peding_game_notconf = "\n⚠️ Game refused successfully!"
+peding_game_conf = "\n✅ Game confirmed successfully!\n\n"
+peding_game_notconf = "\n⚠️ Game refused successfully!\n\n"
 
 unban_title = f"{html.quote('Unban user')}\n\n"
 unban_conf = "✅ User access has been restored!"
